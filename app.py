@@ -257,7 +257,6 @@ def fetch_team_details(url):
         'fundado': safe_get_text(soup.find(text='Fundación:').find_next('br').next_sibling.strip()),
         'apodo': safe_get_text(soup.find(text='Apodo:').find_next('br').next_sibling.strip()),
         'estadio': safe_get_text(soup.find(text='Estadio local:').find_next('br').next_sibling.strip()),
-        'imagen': soup.find('div', class_='clubder').find('img')['src']  # Image URL
     }
     return details
 
