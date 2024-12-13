@@ -263,7 +263,7 @@ def fetch_team_details(url):
 
 @app.route('/club=<name>', methods=['GET'])
 def get_club_details(name):
-    team_url = f"{BASE_URL}{name}"
+    team_url = f"https://www.promiedos.com.ar/club={name}"
     team_details = fetch_team_details(team_url)
     if team_details:
         return jsonify(team_details)
