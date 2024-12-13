@@ -252,19 +252,29 @@ def fetch_team_details(url):
 
     # Extract specific team details based on the page structure
     details = {
-        'nombre': safe_get_text(soup.find('strong')),  # Nombre del equipo
+        'nombre': safe_get_text(soup.find('strong')),  # Nombre del equipo (probablemente es un <strong>)
+        
+        # Extraemos el "Nombre completo", en el caso de que no se encuentre, dejamos un valor predeterminado
         'nombreCompleto': safe_get_text(
-            soup.find(text=re.compile(r'Nombre completo:')).find_next('br').next_sibling.strip() if soup.find(text=re.compile(r'Nombre completo:')) else "No encontrado"
+            soup.find(text=re.compile(r'Nombre completo:')).find_next('strong') if soup.find(text=re.compile(r'Nombre completo:')) else None
         ),
+        
+        # Extraemos la fecha de fundación, y sólo tomamos la parte de la fecha antes del parentesis
         'fundado': safe_get_text(
-            soup.find(text=re.compile(r'Fundación:')).find_next('br').next_sibling.split('(')[0].strip() if soup.find(text=re.compile(r'Fundación:')) else "No encontrado"
+            soup.find(text=re.compile(r'Fundación:')).find_next('strong').get_text().split(' (')[0] if soup.find(text=re.compile(r'Fundación:')) else "No encontrado"
         ),
+        
+        # Apodo, lo extraemos de la etiqueta siguiente
         'apodo': safe_get_text(
-            soup.find(text=re.compile(r'Apodo:')).find_next('br').next_sibling.strip() if soup.find(text=re.compile(r'Apodo:')) else "No encontrado"
+            soup.find(text=re.compile(r'Apodo:')).find_next('strong') if soup.find(text=re.compile(r'Apodo:')) else "No encontrado"
         ),
+        
+        # Extraemos el estadio, si no se encuentra dejamos como "No encontrado"
         'estadio': safe_get_text(
-            soup.find(text=re.compile(r'Estadio local:')).find_next('br').next_sibling.strip() if soup.find(text=re.compile(r'Estadio local:')) else "No encontrado"
+            soup.find(text=re.compile(r'Estadio local:')).find_next('strong') if soup.find(text=re.compile(r'Estadio local:')) else "No encontrado"
         ),
+        
+        # Imagen: Buscamos la etiqueta img dentro del div con clase 'clubder'
         'imagen': soup.find('div', class_='clubder').find('img')['src'] if soup.find('div', class_='clubder') and soup.find('div', class_='clubder').find('img') else "No imagen encontrada"
     }
     return details
