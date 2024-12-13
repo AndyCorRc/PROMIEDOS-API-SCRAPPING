@@ -252,12 +252,12 @@ def fetch_team_details(url):
 
     # Extract specific team details based on the page structure
     details = {
-        'name': safe_get_text(soup.find('strong')),  # Team name
-        'nombreCompleto': safe_get_text(soup.find(text='Nombre completo:').find_next('/i')),
-        'fundado': safe_get_text(soup.find(text='Fundación:').find_next('/i')),
-        'apodo': safe_get_text(soup.find(text='Apodo:').find_next('i')),
-        'estadio': safe_get_text(soup.find(text='Estadio local:').find_next('br')),
-    }
+    'nombre': safe_get_text(soup.find('strong')),  # Nombre del equipo
+    'nombreCompleto': safe_get_text(soup.find(text='Nombre completo:').find_next('br').next_sibling) if soup.find(text='Nombre completo:') else None,
+    'fundado': safe_get_text(soup.find(text='Fundación:').find_next('br').next_sibling) if soup.find(text='Fundación:') else None,
+    'apodo': safe_get_text(soup.find(text='Apodo:').find_next('br').next_sibling) if soup.find(text='Apodo:') else None,
+    'estadio': safe_get_text(soup.find(text='Estadio local:').find_next('br').next_sibling) if soup.find(text='Estadio local:') else None,
+}
     return details
 
 
