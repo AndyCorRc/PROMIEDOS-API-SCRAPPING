@@ -251,32 +251,53 @@ def fetch_team_details(url):
     soup = BeautifulSoup(html_content, 'html.parser')
 
     # Extract specific team details based on the page structure
-    details = {
-        'nombre': safe_get_text(soup.find('strong')),  # Nombre del equipo (probablemente es un <strong>)
-        
-        # Extraemos el "Nombre completo", en el caso de que no se encuentre, dejamos un valor predeterminado
-        'nombreCompleto': safe_get_text(
-            soup.find(text=re.compile(r'Nombre completo:')).find_next('strong') if soup.find(text=re.compile(r'Nombre completo:')) else None
-        ),
-        
-        # Extraemos la fecha de fundación, y sólo tomamos la parte de la fecha antes del parentesis
-        'fundado': safe_get_text(
-            soup.find(text=re.compile(r'Fundación:')).find_next('strong').get_text().split(' (')[0] if soup.find(text=re.compile(r'Fundación:')) else "No encontrado"
-        ),
-        
-        # Apodo, lo extraemos de la etiqueta siguiente
-        'apodo': safe_get_text(
-            soup.find(text=re.compile(r'Apodo:')).find_next('strong') if soup.find(text=re.compile(r'Apodo:')) else "No encontrado"
-        ),
-        
-        # Extraemos el estadio, si no se encuentra dejamos como "No encontrado"
-        'estadio': safe_get_text(
-            soup.find(text=re.compile(r'Estadio local:')).find_next('strong') if soup.find(text=re.compile(r'Estadio local:')) else "No encontrado"
-        ),
-        
-        # Imagen: Buscamos la etiqueta img dentro del div con clase 'clubder'
-        'imagen': soup.find('div', class_='clubder').find('img')['src'] if soup.find('div', class_='clubder') and soup.find('div', class_='clubder').find('img') else "No imagen encontrada"
-    }
+    details = {}
+
+    # Nombre
+    name = soup.find('strong')
+    if name:
+        details['nombre'] = name.get_text(strip=True)
+    else:
+        details['nombre'] = "No encontrado"
+    
+    # Nombre Completo
+    full_name = soup.find(text=re.compile(r'Nombre completo:'))
+    if full_name:
+        details['nombreCompleto'] = full_name.find_next('strong').get_text(strip=True)
+    else:
+        details['nombreCompleto'] = "No encontrado"
+    
+    # Fundación
+    founded = soup.find(text=re.compile(r'Fundación:'))
+    if founded:
+        details['fundado'] = founded.find_next('strong').get_text(strip=True).split(' (')[0]
+    else:
+        details['fundado'] = "No encontrado"
+    
+    # Apodo
+    nickname = soup.find(text=re.compile(r'Apodo:'))
+    if nickname:
+        details['apodo'] = nickname.find_next('strong').get_text(strip=True)
+    else:
+        details['apodo'] = "No encontrado"
+    
+    # Estadio
+    stadium = soup.find(text=re.compile(r'Estadio local:'))
+    if stadium:
+        details['estadio'] = stadium.find_next('strong').get_text(strip=True)
+    else:
+        details['estadio'] = "No encontrado"
+    
+    # Imagen
+    image_div = soup.find('div', class_='clubder')
+    if image_div and image_div.find('img'):
+        details['imagen'] = image_div.find('img')['src']
+    else:
+        details['imagen'] = "No imagen encontrada"
+
+    # Imprimir los detalles
+    print("Detalles extraídos: ", details)
+
     return details
 
 
