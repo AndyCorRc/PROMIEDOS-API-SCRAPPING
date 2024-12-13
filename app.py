@@ -252,20 +252,20 @@ def fetch_team_details(url):
 
     # Extract specific team details based on the page structure
     details = {
-    'nombre': safe_get_text(soup.find('strong')),  # Nombre del equipo
-    'nombreCompleto': safe_get_text(
-        soup.find(text='Nombre completo:').find_next('i').next_sibling
-    ).strip() if soup.find(text='Nombre completo:') else "No encontrado",
-    'fundado': safe_get_text(
-        soup.find(text='Fundación:').find_next('i').next_sibling
-    ).strip().split(" (")[0] if soup.find(text='Fundación:') else "No encontrado",
-    'apodo': safe_get_text(
-        soup.find(text='Apodo:').find_next('i').next_sibling
-    ).strip() if soup.find(text='Apodo:') else "No encontrado",
-    'estadio': safe_get_text(
-        soup.find(text='Estadio local:').find_next('i').next_sibling
-    ).strip() if soup.find(text='Estadio local:') else "No encontrado",
-}
+        'nombre': safe_get_text(soup.find('strong')),  # Nombre del equipo
+        'nombreCompleto': safe_get_text(
+            soup.find(text='Nombre completo:').find_next('br').next_sibling
+        ).strip() if soup.find(text='Nombre completo:') else "No encontrado",
+        'fundado': safe_get_text(
+            soup.find(text='Fundación:').find_next('br').next_sibling
+        ).strip().split(" (")[0] if soup.find(text='Fundación:') else "No encontrado",
+        'apodo': safe_get_text(
+            soup.find(text='Apodo:').find_next('br').next_sibling
+        ).strip() if soup.find(text='Apodo:') else "No encontrado",
+        'estadio': safe_get_text(
+            soup.find(text='Estadio local:').find_next('br').next_sibling
+        ).strip() if soup.find(text='Estadio local:') else "No encontrado",
+    }
     return details
 
 
