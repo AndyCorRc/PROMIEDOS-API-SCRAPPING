@@ -250,6 +250,7 @@ def fetch_team_details(url):
 
     soup = BeautifulSoup(html_content, 'html.parser')
 
+
     # Extract specific team details based on the page structure
     details = {
         'nombre': safe_get_text(soup.find('strong')),  # Team name
