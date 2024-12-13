@@ -187,9 +187,7 @@ def extract_table_positions(url):
         cols = row.find_all('td')
         if cols:
             # Extract additional info from the row's "name" attribute
-            additional_info = {
-                'name': row.get('name', None)  # Extract "name" attribute if it exists
-            }
+
 
             # Build the position dictionary
             position = {
@@ -202,7 +200,7 @@ def extract_table_positions(url):
                 'ga': safe_get_text(cols[6]),
                 'gd': safe_get_text(cols[7]),
                 'points': safe_get_text(cols[8]),
-                'additional_info': additional_info
+                'name': row.get('name', None)
             }
             positions.append(position)
 
