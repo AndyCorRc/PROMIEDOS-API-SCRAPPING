@@ -186,6 +186,14 @@ def extract_table_positions(url):
     for row in rows:
         cols = row.find_all('td')
         if cols:
+            # Extract additional info from specific classes
+            additional_info = {}
+            for class_name in ['punt', 'pr', 'ipr']:
+                element = row.find(class_=class_name)
+                if element:
+                    additional_info[class_name] = safe_get_text(element)
+
+            # Build the position dictionary
             position = {
                 'team': safe_get_text(cols[0]),
                 'played': safe_get_text(cols[1]),
@@ -195,11 +203,11 @@ def extract_table_positions(url):
                 'gf': safe_get_text(cols[5]),
                 'ga': safe_get_text(cols[6]),
                 'gd': safe_get_text(cols[7]),
-                'points': safe_get_text(cols[8])
-                
+                'points': safe_get_text(cols[8]),
+                'additional_info': additional_info
             }
             positions.append(position)
-    
+
     return positions
 
 @app.route('/results', methods=['GET'])
