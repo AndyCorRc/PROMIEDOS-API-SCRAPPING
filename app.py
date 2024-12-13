@@ -254,18 +254,18 @@ def fetch_team_details(url):
     details = {
         'nombre': safe_get_text(soup.find('strong')),  # Nombre del equipo
         'nombreCompleto': safe_get_text(
-            soup.find(text=re.compile(r'Nombre completo:')).find_parent().find_next('br').next_sibling
-        ).strip() if soup.find(text=re.compile(r'Nombre completo:')) else "No encontrado",
+            soup.find(text=re.compile(r'Nombre completo:')).find_next('br').next_sibling.strip() if soup.find(text=re.compile(r'Nombre completo:')) else "No encontrado"
+        ),
         'fundado': safe_get_text(
-            soup.find(text=re.compile(r'Fundación:')).find_parent().find_next('br').next_sibling
-        ).split("(")[0].strip() if soup.find(text=re.compile(r'Fundación:')) else "No encontrado",
+            soup.find(text=re.compile(r'Fundación:')).find_next('br').next_sibling.split('(')[0].strip() if soup.find(text=re.compile(r'Fundación:')) else "No encontrado"
+        ),
         'apodo': safe_get_text(
-            soup.find(text=re.compile(r'Apodo:')).find_parent().find_next('br').next_sibling
-        ).strip() if soup.find(text=re.compile(r'Apodo:')) else "No encontrado",
+            soup.find(text=re.compile(r'Apodo:')).find_next('br').next_sibling.strip() if soup.find(text=re.compile(r'Apodo:')) else "No encontrado"
+        ),
         'estadio': safe_get_text(
-            soup.find(text=re.compile(r'Estadio local:')).find_parent().find_next('br').next_sibling
-        ).strip() if soup.find(text=re.compile(r'Estadio local:')) else "No encontrado",
-        'imagen': soup.find('div', class_='clubder').find('img')['src'] if soup.find('div', class_='clubder') else "No imagen encontrada"
+            soup.find(text=re.compile(r'Estadio local:')).find_next('br').next_sibling.strip() if soup.find(text=re.compile(r'Estadio local:')) else "No encontrado"
+        ),
+        'imagen': soup.find('div', class_='clubder').find('img')['src'] if soup.find('div', class_='clubder') and soup.find('div', class_='clubder').find('img') else "No imagen encontrada"
     }
     return details
 
