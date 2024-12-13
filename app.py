@@ -186,12 +186,10 @@ def extract_table_positions(url):
     for row in rows:
         cols = row.find_all('td')
         if cols:
-            # Extract additional info from specific classes
-            additional_info = {}
-            for class_name in ['punt', 'pr', 'ipr']:
-                element = row.find(class_=class_name)
-                if element:
-                    additional_info[class_name] = safe_get_text(element)
+            # Extract additional info from the row's "name" attribute
+            additional_info = {
+                'name': row.get('name', None)  # Extract "name" attribute if it exists
+            }
 
             # Build the position dictionary
             position = {
