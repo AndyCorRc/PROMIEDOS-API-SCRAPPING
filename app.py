@@ -251,53 +251,21 @@ def fetch_team_details(url):
     soup = BeautifulSoup(html_content, 'html.parser')
 
     # Extract specific team details based on the page structure
-    details = {}
-
-    # Nombre
-    name = soup.find('strong')
-    if name:
-        details['nombre'] = name.get_text(strip=True)
-    else:
-        details['nombre'] = "No encontrado"
-    
-    # Nombre Completo
-    full_name = soup.find(text=re.compile(r'Nombre completo:'))
-    if full_name:
-        details['nombreCompleto'] = full_name.find_next('strong').get_text(strip=True)
-    else:
-        details['nombreCompleto'] = "No encontrado"
-    
-    # Fundación
-    founded = soup.find(text=re.compile(r'Fundación:'))
-    if founded:
-        details['fundado'] = founded.find_next('strong').get_text(strip=True).split(' (')[0]
-    else:
-        details['fundado'] = "No encontrado"
-    
-    # Apodo
-    nickname = soup.find(text=re.compile(r'Apodo:'))
-    if nickname:
-        details['apodo'] = nickname.find_next('strong').get_text(strip=True)
-    else:
-        details['apodo'] = "No encontrado"
-    
-    # Estadio
-    stadium = soup.find(text=re.compile(r'Estadio local:'))
-    if stadium:
-        details['estadio'] = stadium.find_next('strong').get_text(strip=True)
-    else:
-        details['estadio'] = "No encontrado"
-    
-    # Imagen
-    image_div = soup.find('div', class_='clubder')
-    if image_div and image_div.find('img'):
-        details['imagen'] = image_div.find('img')['src']
-    else:
-        details['imagen'] = "No imagen encontrada"
-
-    # Imprimir los detalles
-    print("Detalles extraídos: ", details)
-
+    details = {
+    'nombre': safe_get_text(soup.find('strong')),  # Nombre del equipo
+    'nombreCompleto': safe_get_text(
+        soup.find(text='Nombre completo:').parent.next_sibling
+    ).strip() if soup.find(text='Nombre completo:') else "No encontrado",
+    'fundado': safe_get_text(
+        soup.find(text='Fundación:').parent.next_sibling
+    ).strip() if soup.find(text='Fundación:') else "No encontrado",
+    'apodo': safe_get_text(
+        soup.find(text='Apodo:').parent.next_sibling
+    ).strip() if soup.find(text='Apodo:') else "No encontrado",
+    'estadio': safe_get_text(
+        soup.find(text='Estadio local:').parent.next_sibling
+    ).strip() if soup.find(text='Estadio local:') else "No encontrado",
+}
     return details
 
 
