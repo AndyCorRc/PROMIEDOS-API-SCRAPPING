@@ -256,8 +256,7 @@ def fetch_team_details(url):
         'full_name': safe_get_text(soup.find(text='Nombre completo:').find_next('i')),
         'founded': safe_get_text(soup.find(text='Fundación:').find_next('i')),
         'nickname': safe_get_text(soup.find(text='Apodo:').find_next('i')),
-        'location': safe_get_text(soup.find(text='Club de:').find_next('i')),
-        'stadium': safe_get_text(soup.find(text='Estadio local:').find_next('i')),
+        'stadium': safe_get_text(soup.find(text='Estadio local:').find_next('br')),
     }
     return details
 
