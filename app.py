@@ -185,6 +185,7 @@ def extract_table_positions(url):
     positions = []
     for row in rows:
         cols = row.find_all('td')
+        name_attr = row.get('name', None)
         if cols:
             # Extract additional info from the row's "name" attribute
 
@@ -202,7 +203,15 @@ def extract_table_positions(url):
                 'points': safe_get_text(cols[8]),
                 'name': row.get('name', None)
             }
+
+            if name_attr:
+                team_url = f"https://www.promiedos.com.ar/club={name_attr}"
+                team_details = fetch_team_details(team_url)
+                position['team_details'] = team_details
+
+
             positions.append(position)
+            
 
     return positions
 
@@ -230,6 +239,37 @@ def get_standings(league_name):
         return jsonify(positions)
     else:
         return jsonify({"error": "No se encontraron posiciones para la liga solicitada"}), 404
+
+
+def fetch_team_details(url):
+    """Fetch additional details for a team from the given URL."""
+    html_content = fetch_html(url)
+    if not html_content:
+        app.logger.error(f"Failed to fetch content from {url}")
+        return None
+
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    # Extract specific team details based on the page structure
+    details = {
+        'name': safe_get_text(soup.find('strong')),  # Team name
+        'full_name': safe_get_text(soup.find(text='Nombre completo:').find_next('i')),
+        'founded': safe_get_text(soup.find(text='Fundación:').find_next('i')),
+        'nickname': safe_get_text(soup.find(text='Apodo:').find_next('i')),
+        'location': safe_get_text(soup.find(text='Club de:').find_next('i')),
+        'stadium': safe_get_text(soup.find(text='Estadio local:').find_next('i')),
+    }
+
+
+@app.route('/club=<name>', methods=['GET'])
+def get_club_details(name):
+    team_url = f"https://www.promiedos.com.ar/club={name}"
+    team_details = fetch_team_details(team_url)
+    if team_details:
+        return jsonify(team_details)
+    else:
+        return jsonify({"error": "Failed to fetch team details"}), 500
+
 
 
 @app.route('/ficha=<match_id>', methods=['GET'])
