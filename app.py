@@ -263,8 +263,9 @@ def fetch_team_details(url):
         soup.find(text='Apodo:').parent.next_sibling
     ).strip() if soup.find(text='Apodo:') else "No encontrado",
     'estadio': safe_get_text(
-        soup.find(text='Estadio local:').parent.next_sibling
+        soup.find(text='Estadio local:').parent.find_next('strong')
     ).strip() if soup.find(text='Estadio local:') else "No encontrado",
+    'imagen': soup.find('div', class_='clubder').find('img')['src'] if soup.find('div', class_='clubder') and soup.find('div', class_='clubder').find('img') else "No imagen encontrada"
 }
     return details
 
