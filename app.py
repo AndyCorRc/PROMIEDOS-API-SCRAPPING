@@ -259,6 +259,7 @@ def fetch_team_details(url):
         'location': safe_get_text(soup.find(text='Club de:').find_next('i')),
         'stadium': safe_get_text(soup.find(text='Estadio local:').find_next('i')),
     }
+    return details
 
 
 @app.route('/club=<name>', methods=['GET'])
