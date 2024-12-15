@@ -321,58 +321,6 @@ def extract_usoficha_to_estadisticas(soup):
         app.logger.error(f"Error extracting content: {e}")
         return None
     
-def extract_estadisticas(soup):
-    """Extract match statistics like possession, shots, fouls, corners."""
-    try:
-        # Find the 'ficha-estadisticas' div
-        estadisticas_div = soup.find(attrs={'id': 'ficha-estadisticas'})
-        if not estadisticas_div:
-            app.logger.warning("Element 'ficha-estadisticas' not found.")
-            return None
-        
-        # Find the relevant statistics inside this div
-        estadisticas = {}
-
-        # Extract possession
-        posesion_div = estadisticas_div.find(string=lambda text: 'Posesión' in text)
-        if posesion_div:
-            posesion = posesion_div.find_next('div', {'id': 'porcentaje1'})
-            if posesion:
-                estadisticas["posesion"] = posesion.get_text(strip=True)
-
-        # Extract shots on target (tiros efectivos al arco)
-        tiros_efectivos_div = estadisticas_div.find(string=lambda text: 'Tiros efectivos al arco' in text)
-        if tiros_efectivos_div:
-            tiros_efectivos = tiros_efectivos_div.find_next('div', {'id': 'porcentaje1'})
-            if tiros_efectivos:
-                estadisticas["tiros_efectivos"] = tiros_efectivos.get_text(strip=True)
-
-        # Extract total shots (tiros al arco)
-        tiros_total_div = estadisticas_div.find(string=lambda text: 'Tiros al arco (total de intentos)' in text)
-        if tiros_total_div:
-            tiros_total = tiros_total_div.find_next('div', {'id': 'porcentaje1'})
-            if tiros_total:
-                estadisticas["tiros_total"] = tiros_total.get_text(strip=True)
-
-        # Extract fouls committed (fouls cometidos)
-        fouls_div = estadisticas_div.find(string=lambda text: 'Fouls Cometidos' in text)
-        if fouls_div:
-            fouls = fouls_div.find_next('div', {'id': 'porcentaje1'})
-            if fouls:
-                estadisticas["fouls"] = fouls.get_text(strip=True)
-
-        # Extract corners (corners)
-        corners_div = estadisticas_div.find(string=lambda text: 'Corners' in text)
-        if corners_div:
-            corners = corners_div.find_next('div', {'id': 'porcentaje1'})
-            if corners:
-                estadisticas["corners"] = corners.get_text(strip=True)
-        
-        return [f"{key}: {value}" for key, value in estadisticas.items()]
-
-    except Exception as e:
-        app.logger.error(f"Error extracting statistics: {e}")
-        return None
     
 
 
