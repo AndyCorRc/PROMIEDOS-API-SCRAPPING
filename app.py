@@ -295,7 +295,8 @@ def get_ficha(match_id):
         return jsonify(parsed_data)
     else:
         return jsonify({"error": "No se encontró el contenido entre 'usoficha' y 'ficha-estadisticas'"}), 404
-    
+
+
 def extract_usoficha_to_estadisticas(soup):
     """Extract content between 'usoficha' and 'ficha-estadisticas', if both are present."""
     try:
@@ -305,9 +306,8 @@ def extract_usoficha_to_estadisticas(soup):
             app.logger.warning("Element 'usoficha' not found.")
             return None
         
-        # Use find_all_next to get all elements starting from usoficha
+        # Extract content from usoficha
         content_elements = usoficha_element.find_all_next(string=True)
-        
         content = []
         for element in content_elements:
             # Stop if we reach ficha-estadisticas
@@ -315,11 +315,57 @@ def extract_usoficha_to_estadisticas(soup):
                 break
             content.append(element.strip())
 
+        # Extract statistics from 'ficha-estadisticas' if available
+        estadisticas_data = extract_estadisticas(soup)
+        if estadisticas_data:
+            content.append("\n".join(estadisticas_data))
+        
         return "\n".join(content)
-    
+
     except Exception as e:
         app.logger.error(f"Error extracting content: {e}")
         return None
+
+
+def extract_estadisticas(soup):
+    """Extract match statistics like possession, shots, fouls, corners."""
+    try:
+        # Find the 'ficha-estadisticas' div
+        estadisticas_div = soup.find(attrs={'id': 'ficha-estadisticas'})
+        if not estadisticas_div:
+            app.logger.warning("Element 'ficha-estadisticas' not found.")
+            return None
+        
+        # Find the relevant statistics inside this div
+        estadisticas = {}
+        
+        # Example of finding each statistic
+        posesion = estadisticas_div.find(string=lambda text: 'Posesión' in text)
+        if posesion:
+            estadisticas["posesion"] = posesion.split(":")[-1].strip()
+
+        tiros_efectivos = estadisticas_div.find(string=lambda text: 'Tiros efectivos al arco' in text)
+        if tiros_efectivos:
+            estadisticas["tiros_efectivos"] = tiros_efectivos.split(":")[-1].strip()
+
+        tiros_total = estadisticas_div.find(string=lambda text: 'Tiros al arco (total de intentos)' in text)
+        if tiros_total:
+            estadisticas["tiros_total"] = tiros_total.split(":")[-1].strip()
+
+        fouls = estadisticas_div.find(string=lambda text: 'Fouls Cometidos' in text)
+        if fouls:
+            estadisticas["fouls"] = fouls.split(":")[-1].strip()
+
+        corners = estadisticas_div.find(string=lambda text: 'Corners' in text)
+        if corners:
+            estadisticas["corners"] = corners.split(":")[-1].strip()
+        
+        return [f"{key}: {value}" for key, value in estadisticas.items()]
+
+    except Exception as e:
+        app.logger.error(f"Error extracting statistics: {e}")
+        return None
+
 
 
 import re
