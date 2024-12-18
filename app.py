@@ -43,16 +43,19 @@ def safe_get_attr(element, attr, default=None):
     return element[attr].strip() if element and element.has_attr(attr) else default
 
 def process_match_row(row, league_title, league_logo):
-    """Process a row of match data."""
+    """Process a row of match data with enhanced error handling."""
     try:
         # Validar columnas
         columns = row.find_all('td')
         if len(columns) < 2:
+            app.logger.warning("Row has insufficient columns, skipping.")
             return None
 
         # Extraer ID del partido
         match_link = row.find('a', href=True)
         match_id = match_link['href'].split('ficha=')[-1] if match_link and 'ficha=' in match_link['href'] else 'Unknown'
+        if match_id == 'Unknown':
+            app.logger.warning("Match ID is unknown. Skipping additional data fetch.")
 
         # Estado del juego
         game_state = (
@@ -77,11 +80,11 @@ def process_match_row(row, league_title, league_logo):
         def extract_team_data(team_section, logo_index=0):
             """Extraer nombre y logo del equipo."""
             if not team_section:
-                return 'Unknown', None
+                return 'Unknown', "https://default.logo/url.png"  # Logo por defecto
             team_name = safe_get_text(team_section.find(class_='datoequipo'), 'Unknown')
             images = team_section.find_all('img')
             logo_src = images[logo_index]['src'] if len(images) > logo_index else None
-            logo_url = f"{BASE_URL}{logo_src}" if logo_src else None
+            logo_url = f"{BASE_URL}{logo_src}" if logo_src else "https://default.logo/url.png"
             return team_name, logo_url
 
         home_team, home_logo = extract_team_data(home_team_section, logo_index=1)
@@ -92,7 +95,12 @@ def process_match_row(row, league_title, league_logo):
         away_score = safe_get_text(row.find(class_='game-r2 span'), '0')
 
         # Datos adicionales del partido
-        additional_data = fetch_match_details(match_id)
+        additional_data = {'error': 'No se pudieron obtener detalles del partido'}
+        if match_id != 'Unknown':
+            try:
+                additional_data = fetch_match_details(match_id)
+            except Exception as e:
+                app.logger.error(f"Error fetching additional data for match_id {match_id}: {e}")
 
         # Crear el objeto del partido
         match = {
@@ -118,6 +126,7 @@ def process_match_row(row, league_title, league_logo):
     except Exception as e:
         app.logger.error(f"Error processing match row: {e}", exc_info=True)
         return None
+
 
 
 def fetch_match_details(match_id):
