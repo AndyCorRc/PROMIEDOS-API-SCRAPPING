@@ -327,7 +327,7 @@ def extract_usoficha_to_estadisticas(soup):
 import re
 
 def parse_match_content(content, soup):
-    # Define regex patterns for different sections
+    # Define regex patterns for other sections
     estado_pattern = re.compile(r"(Finalizado|Entretiempo|Inicio: .+|En juego|Suspendido)")
     goles_pattern = re.compile(r"GOLES\n(.*?)\n(AMARILLAS|ROJAS)", re.DOTALL)
     amarillas_pattern = re.compile(r"AMARILLAS\n(.*?)\nCAMBIOS", re.DOTALL)
@@ -349,24 +349,24 @@ def parse_match_content(content, soup):
         goles_local = "\n".join(local_goals) if local_goals else "No hay"
         goles_visitante = "\n".join(visitante_goals) if visitante_goals else "No hay"
 
-    # Parse cambios using incidencias2
+    # Extract cambios from incidencias2
     cambios_local = "No hubo"
     cambios_visitante = "No hubo"
     try:
-        # Find all elements with class "cambios"
         cambios_elements = soup.find_all(attrs={"class": "cambios"})
-        if cambios_elements and len(cambios_elements) >= 2:
-            # Local team changes are in the first 'incidencias2' under the first 'cambios'
+        if cambios_elements:
+            # For the local team, take the first incidencias2 after the first cambios
             cambios_local_element = cambios_elements[0].find_next(attrs={"class": "incidencias2"})
             cambios_local = cambios_local_element.get_text(separator="\n").strip() if cambios_local_element else "No hubo"
-            
-            # Visitor team changes are in the first 'incidencias2' under the second 'cambios'
-            cambios_visitante_element = cambios_elements[1].find_next(attrs={"class": "incidencias2"})
-            cambios_visitante = cambios_visitante_element.get_text(separator="\n").strip() if cambios_visitante_element else "No hubo"
-    except Exception as e:
-        app.logger.error(f"Error parsing cambios: {e}")
 
-    # Prepare result dictionary
+            # For the visiting team, take the first incidencias2 after the second cambios
+            if len(cambios_elements) > 1:
+                cambios_visitante_element = cambios_elements[1].find_next(attrs={"class": "incidencias2"})
+                cambios_visitante = cambios_visitante_element.get_text(separator="\n").strip() if cambios_visitante_element else "No hubo"
+    except Exception as e:
+        app.logger.error(f"Error extracting cambios from incidencias2: {e}")
+
+    # Prepare the result dictionary
     result = {
         "estado": estado_match.group(0) if estado_match else "En juego",
         "goles_local": goles_local,
@@ -378,7 +378,6 @@ def parse_match_content(content, soup):
     }
     
     return result
-
 
 
 
