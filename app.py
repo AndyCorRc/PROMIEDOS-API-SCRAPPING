@@ -540,6 +540,21 @@ def get_card_containers():
     else:
         return jsonify({"error": "No se encontraron contenedores de tarjetas en la página"}), 404
     
+    
+@app.route('/test', methods=['GET'])
+def test():
+    fake_html = """
+    <div class="cambios">...</div>
+    <div class="incidencias2">Cambio 1 Local<br>Cambio 2 Local</div>
+    <div class="cambios">...</div>
+    <div class="incidencias2">Cambio 1 Visitante<br>Cambio 2 Visitante</div>
+    """
+    soup = BeautifulSoup(fake_html, 'html.parser')
+    content = "Estado: Finalizado\nGOLES\nlocal: Gol A\nvisitante: Gol B\nAMARILLAS\nlocal: Amarilla A\nvisitante: Amarilla B\n"
+    result = parse_match_content(content, soup)
+    return jsonify(result)
+
+    
 
 
 @app.route('/canales')
