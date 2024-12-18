@@ -124,21 +124,36 @@ def fetch_match_details(match_id):
     """Fetch match details from the ficha endpoint."""
     try:
         match_url = f"{BASE_URL}ficha={match_id}"
-        response = requests.get(match_url)
+        response = requests.get(match_url, timeout=10)  # Agrega un timeout para evitar bloqueos
+        response.raise_for_status()  # Lanza una excepción si el código HTTP no es 200 OK
+
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Extraer el contenido relevante
             content = extract_usoficha_to_estadisticas(soup)
             if content:
-                return parse_match_content(content, soup)
+                return parse_match_content(content, soup)  # Procesar y devolver datos parseados
+            
+        # Si llega aquí, algo falló en el contenido extraído
+        app.logger.warning(f"Detalles no encontrados para el partido {match_id}")
         return {"error": "No se pudieron obtener detalles del partido"}
-    except Exception as e:
-        app.logger.error(f"Error fetching match details: {e}")
+
+    except requests.exceptions.Timeout:
+        # Manejar tiempo de espera agotado
+        app.logger.error(f"Timeout fetching details for match {match_id}")
+        return {"error": "Timeout fetching match details"}
+    
+    except requests.exceptions.RequestException as e:
+        # Manejar errores generales de la solicitud HTTP
+        app.logger.error(f"HTTP error fetching details for match {match_id}: {e}")
         return {"error": "Error al acceder al endpoint de ficha"}
 
-
     except Exception as e:
-        app.logger.error(f"Error processing match row: {e}")
-        return None
+        # Manejar cualquier otro tipo de error no esperado
+        app.logger.error(f"Unexpected error fetching match details for {match_id}: {e}")
+        return {"error": "Error desconocido al obtener detalles del partido"}
+
 
 def extract_matches(soup):
     """Extract match data from the parsed HTML, including scorers, game time images, and href from game-info."""
