@@ -124,28 +124,24 @@ def fetch_match_details(match_id):
     """Fetch match details from the ficha endpoint."""
     try:
         match_url = f"{BASE_URL}ficha={match_id}"
-        app.logger.info(f"Fetching match details from {match_url}")
-        
-        response = requests.get(match_url, timeout=10)
-        response.raise_for_status()
-        
+        response = requests.get(match_url)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             content = extract_usoficha_to_estadisticas(soup)
-            
             if content:
-                return parse_match_content(content, soup)
-            
-            app.logger.warning(f"No details found for match {match_id}")
-            return {"error": "No se pudieron obtener detalles del partido"}
-        
-    except requests.exceptions.RequestException as e:
-        app.logger.error(f"HTTP error fetching details for match {match_id}: {e}")
-        return {"error": "Error al acceder al endpoint de ficha"}
-    
+                match_data = parse_match_content(content, soup)
+
+                # Verificación para evitar mostrar partidos con información desconocida
+                if match_data.get('homeTeam') == 'Unknown' or match_data.get('awayTeam') == 'Unknown':
+                    app.logger.warning(f"Partido con detalles desconocidos: {match_data}")
+                    return None  # Omitir este partido
+                
+                return match_data
+        return {"error": "No se pudieron obtener detalles del partido"}
     except Exception as e:
-        app.logger.error(f"Unexpected error fetching match details for {match_id}: {e}")
-        return {"error": "Error desconocido al obtener detalles del partido"}
+        app.logger.error(f"Error fetching match details: {e}")
+        return {"error": "Error al acceder al endpoint de ficha"}
+
 
 
 def validate_match_data(match_data):
