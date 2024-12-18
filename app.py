@@ -118,6 +118,8 @@ def process_match_row(row, league_title, league_logo):
         return None
 
 
+
+
 def fetch_match_details(match_id):
     """Fetch match details from the ficha endpoint."""
     try:
@@ -130,10 +132,6 @@ def fetch_match_details(match_id):
                 match_data = parse_match_content(content, soup)
 
                 # Verificación para evitar mostrar partidos con información desconocida
-                if match_data.get('homeTeam') == 'Unknown' or match_data.get('awayTeam') == 'Unknown':
-                    app.logger.warning(f"Partido con detalles desconocidos: {match_data}")
-                    return None  # Omitir este partido
-                
                 return match_data
         return {"error": "No se pudieron obtener detalles del partido"}
     except Exception as e:
