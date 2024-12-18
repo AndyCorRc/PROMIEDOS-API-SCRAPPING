@@ -45,8 +45,11 @@ def safe_get_attr(element, attr, default=None):
 def process_match_row(row, league_title, league_logo):
     """Process a row of match data."""
     try:
+        if not row:
+            raise ValueError("Row is None")
+
         columns = row.find_all('td')
-        if len(columns) < 2:
+        if not columns or len(columns) < 2:
             return None
 
         match_link = row.find('a', href=True)
@@ -68,13 +71,13 @@ def process_match_row(row, league_title, league_logo):
             game_state_display = game_state
 
         teams = row.find_all(class_='game-t1')
-        home_team_section = teams[0] if len(teams) > 0 else None
-        away_team_section = teams[1] if len(teams) > 1 else None
+        home_team_section = teams[0] if teams and len(teams) > 0 else None
+        away_team_section = teams[1] if teams and len(teams) > 1 else None
 
         # Para el primer team-t1, agarro la segunda imagen (si existe)
         home_team = safe_get_text(home_team_section.find(class_='datoequipo'), 'Unknown') if home_team_section else 'Unknown'
         home_images = home_team_section.find_all('img') if home_team_section else []
-        home_logo = home_images[1]['src'] if len(home_images) > 1 else home_images[0]['src'] if home_images else None
+        home_logo = home_images[1]['src'] if len(home_images) > 1 else (home_images[0]['src'] if home_images else None)
         home_logo = f"{BASE_URL}{home_logo}" if home_logo else None
 
         # Para el segundo team-t1, agarro la primera imagen (si existe)
@@ -83,8 +86,11 @@ def process_match_row(row, league_title, league_logo):
         away_logo = away_images[0]['src'] if len(away_images) > 0 else None
         away_logo = f"{BASE_URL}{away_logo}" if away_logo else None
 
-        home_score = safe_get_text(row.find(class_='game-r1').find('span'), '0')
-        away_score = safe_get_text(row.find(class_='game-r2').find('span'), '0')
+        home_score_section = row.find(class_='game-r1')
+        home_score = safe_get_text(home_score_section.find('span'), '0') if home_score_section else '0'
+
+        away_score_section = row.find(class_='game-r2')
+        away_score = safe_get_text(away_score_section.find('span'), '0') if away_score_section else '0'
 
         # Obtener datos adicionales desde el endpoint de la ficha
         additional_data = fetch_match_details(match_id)
@@ -112,6 +118,7 @@ def process_match_row(row, league_title, league_logo):
     except Exception as e:
         app.logger.error(f"Error processing match row: {e}")
         return None
+
 
 def fetch_match_details(match_id):
     """Fetch match details from the ficha endpoint."""
