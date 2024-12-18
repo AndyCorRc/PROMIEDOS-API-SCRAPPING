@@ -124,35 +124,38 @@ def fetch_match_details(match_id):
     """Fetch match details from the ficha endpoint."""
     try:
         match_url = f"{BASE_URL}ficha={match_id}"
-        response = requests.get(match_url, timeout=10)  # Agrega un timeout para evitar bloqueos
-        response.raise_for_status()  # Lanza una excepción si el código HTTP no es 200 OK
-
+        app.logger.info(f"Fetching match details from {match_url}")
+        
+        response = requests.get(match_url, timeout=10)
+        response.raise_for_status()
+        
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Extraer el contenido relevante
             content = extract_usoficha_to_estadisticas(soup)
-            if content:
-                return parse_match_content(content, soup)  # Procesar y devolver datos parseados
             
-        # Si llega aquí, algo falló en el contenido extraído
-        app.logger.warning(f"Detalles no encontrados para el partido {match_id}")
-        return {"error": "No se pudieron obtener detalles del partido"}
-
-    except requests.exceptions.Timeout:
-        # Manejar tiempo de espera agotado
-        app.logger.error(f"Timeout fetching details for match {match_id}")
-        return {"error": "Timeout fetching match details"}
-    
+            if content:
+                return parse_match_content(content, soup)
+            
+            app.logger.warning(f"No details found for match {match_id}")
+            return {"error": "No se pudieron obtener detalles del partido"}
+        
     except requests.exceptions.RequestException as e:
-        # Manejar errores generales de la solicitud HTTP
         app.logger.error(f"HTTP error fetching details for match {match_id}: {e}")
         return {"error": "Error al acceder al endpoint de ficha"}
-
+    
     except Exception as e:
-        # Manejar cualquier otro tipo de error no esperado
         app.logger.error(f"Unexpected error fetching match details for {match_id}: {e}")
         return {"error": "Error desconocido al obtener detalles del partido"}
+
+
+def validate_match_data(match_data):
+    """Validate if the extracted match data is complete."""
+    required_fields = ['homeTeam', 'awayTeam', 'homeScore', 'awayScore', 'leagueTitle']
+    for field in required_fields:
+        if not match_data.get(field):
+            return False
+    return True
+
 
 
 def extract_matches(soup):
@@ -362,27 +365,41 @@ def get_ficha(match_id):
 def extract_usoficha_to_estadisticas(soup):
     """Extract content between 'usoficha' and 'ficha-estadisticas', if both are present."""
     try:
+        # Buscar el contenedor con id 'usoficha'
         usoficha_element = soup.find(attrs={'id': 'usoficha'})
         
         if not usoficha_element:
             app.logger.warning("Elemento 'usoficha' no encontrado.")
             return None
         
-        # Use find_all_next to get all elements starting from usoficha
+        # Buscar el contenedor con id 'ficha-estadisticas'
+        estadisticas_element = soup.find(attrs={'id': 'ficha-estadisticas'})
+        
+        if not estadisticas_element:
+            app.logger.warning("Elemento 'ficha-estadisticas' no encontrado.")
+            return None
+
+        # Extraer todos los elementos entre 'usoficha' y 'ficha-estadisticas'
         content_elements = usoficha_element.find_all_next(string=True)
         
         content = []
         for element in content_elements:
-            # Stop if we reach ficha-estadisticas
-            if element == soup.find(attrs={'id': 'ficha-estadisticas'}):
+            # Detenerse cuando se llega a 'ficha-estadisticas'
+            if element == estadisticas_element:
                 break
-            content.append(element.strip())
+            if element.strip():  # Asegurarse de que no se agregue texto vacío
+                content.append(element.strip())
+        
+        if not content:
+            app.logger.warning("No se encontró contenido válido entre 'usoficha' y 'ficha-estadisticas'.")
+            return None
 
         return "\n".join(content)
     
     except Exception as e:
         app.logger.error(f"Error extrayendo el contenido: {e}")
         return None
+
 
 def parse_match_content(content, soup):
     try:
