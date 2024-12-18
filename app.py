@@ -104,7 +104,7 @@ def process_match_row(row, league_title, league_logo):
         return None
 
 def extract_matches(soup):
-    """Extract match data from the parsed HTML, including scorers and game time images."""
+    """Extract match data from the parsed HTML, including scorers, game time images, and href from game-info."""
     matches = []
     rows = soup.find_all('tr', attrs={'name': ['nvp', 'vp']})
 
@@ -141,6 +141,14 @@ def extract_matches(soup):
                 match['time'] = time_text
                 match['image'] = img_url if img_url else None
 
+            # Buscar el href dentro de la clase 'game-info'
+            game_info = row.find(class_='game-info')
+            if game_info:
+                game_info_href = game_info.find('a', href=True)
+                if game_info_href:
+                    match['game_info_href'] = game_info_href['href']
+                    app.logger.info(f"Found game info href: {match['game_info_href']}")
+
             # Añadir el partido a la lista de partidos si se procesó correctamente
             if match:
                 matches.append(match)
@@ -165,6 +173,7 @@ def extract_matches(soup):
             app.logger.error(f"Error processing row: {e}")
 
     return matches
+
 
 
 
