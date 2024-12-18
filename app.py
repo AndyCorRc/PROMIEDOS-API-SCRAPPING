@@ -45,54 +45,60 @@ def safe_get_attr(element, attr, default=None):
 def process_match_row(row, league_title, league_logo):
     """Process a row of match data."""
     try:
+        # Validar columnas
         columns = row.find_all('td')
         if len(columns) < 2:
             return None
 
+        # Extraer ID del partido
         match_link = row.find('a', href=True)
-        match_id = 'Unknown'
-        if match_link and 'ficha=' in match_link['href']:
-            match_id = match_link['href'].split('ficha=')[-1]
+        match_id = match_link['href'].split('ficha=')[-1] if match_link and 'ficha=' in match_link['href'] else 'Unknown'
 
-        game_state = safe_get_text(row.find(class_='game-fin')) or \
-                     safe_get_text(row.find(class_='game-time')) or \
-                     safe_get_text(row.find(class_='game-play'))
+        # Estado del juego
+        game_state = (
+            safe_get_text(row.find(class_='game-fin')) or
+            safe_get_text(row.find(class_='game-time')) or
+            safe_get_text(row.find(class_='game-play')) or
+            'Desconocido'
+        )
 
-        if row.find(class_='game-fin'):
-            game_state_display = "Finalizado"
-        elif row.find(class_='game-play'):
-            game_state_display = safe_get_text(row.find(class_='game-play'))
-        elif row.find(class_='game-time'):
-            game_state_display = f"Inicio: {safe_get_text(row.find(class_='game-time'))}"
-        else:
-            game_state_display = game_state
+        game_state_display = (
+            "Finalizado" if row.find(class_='game-fin') else
+            safe_get_text(row.find(class_='game-play')) if row.find(class_='game-play') else
+            f"Inicio: {safe_get_text(row.find(class_='game-time'))}" if row.find(class_='game-time') else
+            game_state
+        )
 
+        # Equipos (casa y visitante)
         teams = row.find_all(class_='game-t1')
         home_team_section = teams[0] if len(teams) > 0 else None
         away_team_section = teams[1] if len(teams) > 1 else None
 
-        # Para el primer team-t1, agarro la segunda imagen (si existe)
-        home_team = safe_get_text(home_team_section.find(class_='datoequipo'), 'Unknown') if home_team_section else 'Unknown'
-        home_images = home_team_section.find_all('img') if home_team_section else []
-        home_logo = home_images[1]['src'] if len(home_images) > 1 else home_images[0]['src'] if home_images else None
-        home_logo = f"{BASE_URL}{home_logo}" if home_logo else None
+        def extract_team_data(team_section, logo_index=0):
+            """Extraer nombre y logo del equipo."""
+            if not team_section:
+                return 'Unknown', None
+            team_name = safe_get_text(team_section.find(class_='datoequipo'), 'Unknown')
+            images = team_section.find_all('img')
+            logo_src = images[logo_index]['src'] if len(images) > logo_index else None
+            logo_url = f"{BASE_URL}{logo_src}" if logo_src else None
+            return team_name, logo_url
 
-        # Para el segundo team-t1, agarro la primera imagen (si existe)
-        away_team = safe_get_text(away_team_section.find(class_='datoequipo'), 'Unknown') if away_team_section else 'Unknown'
-        away_images = away_team_section.find_all('img') if away_team_section else []
-        away_logo = away_images[0]['src'] if len(away_images) > 0 else None
-        away_logo = f"{BASE_URL}{away_logo}" if away_logo else None
+        home_team, home_logo = extract_team_data(home_team_section, logo_index=1)
+        away_team, away_logo = extract_team_data(away_team_section, logo_index=0)
 
-        home_score = safe_get_text(row.find(class_='game-r1').find('span'), '0')
-        away_score = safe_get_text(row.find(class_='game-r2').find('span'), '0')
+        # Puntajes
+        home_score = safe_get_text(row.find(class_='game-r1 span'), '0')
+        away_score = safe_get_text(row.find(class_='game-r2 span'), '0')
 
-        # Obtener datos adicionales desde el endpoint de la ficha
+        # Datos adicionales del partido
         additional_data = fetch_match_details(match_id)
 
+        # Crear el objeto del partido
         match = {
             'id': {
                 'match_id': match_id,
-                'additional_data': additional_data  # Datos adicionales desde la ficha
+                'additional_data': additional_data
             },
             'leagueTitle': league_title,
             'leagueLogo': league_logo,
@@ -103,15 +109,16 @@ def process_match_row(row, league_title, league_logo):
             'awayLogo': away_logo,
             'homeScore': home_score,
             'awayScore': away_score,
-            'homeScorers': [],
-            'awayScorers': []
+            'homeScorers': [],  # Placeholder para goleadores
+            'awayScorers': []   # Placeholder para goleadores
         }
 
         return match
 
     except Exception as e:
-        app.logger.error(f"Error processing match row: {e}")
+        app.logger.error(f"Error processing match row: {e}", exc_info=True)
         return None
+
 
 def fetch_match_details(match_id):
     """Fetch match details from the ficha endpoint."""
