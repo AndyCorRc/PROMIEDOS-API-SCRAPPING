@@ -82,8 +82,14 @@ def process_match_row(row, league_title, league_logo):
         home_score = safe_get_text(row.find(class_='game-r1').find('span'), '0')
         away_score = safe_get_text(row.find(class_='game-r2').find('span'), '0')
 
+        # Obtener datos adicionales desde el endpoint de la ficha
+        additional_data = fetch_match_details(match_id)
+
         match = {
-            'id': match_id,
+            'id': {
+                'match_id': match_id,
+                'additional_data': additional_data  # Datos adicionales desde la ficha
+            },
             'leagueTitle': league_title,
             'leagueLogo': league_logo,
             'gameState': game_state_display,
@@ -98,6 +104,26 @@ def process_match_row(row, league_title, league_logo):
         }
 
         return match
+
+    except Exception as e:
+        app.logger.error(f"Error processing match row: {e}")
+        return None
+
+def fetch_match_details(match_id):
+    """Fetch match details from the ficha endpoint."""
+    try:
+        match_url = f"{BASE_URL}ficha={match_id}"
+        response = requests.get(match_url)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            content = extract_usoficha_to_estadisticas(soup)
+            if content:
+                return parse_match_content(content, soup)
+        return {"error": "No se pudieron obtener detalles del partido"}
+    except Exception as e:
+        app.logger.error(f"Error fetching match details: {e}")
+        return {"error": "Error al acceder al endpoint de ficha"}
+
 
     except Exception as e:
         app.logger.error(f"Error processing match row: {e}")
@@ -173,7 +199,6 @@ def extract_matches(soup):
             app.logger.error(f"Error processing row: {e}")
 
     return matches
-
 
 
 
@@ -338,16 +363,6 @@ def parse_match_content(content, soup):
         # Estado y goles usando regex
         estado_pattern = re.compile(r"(Finalizado|Entretiempo|Inicio: .+|En juego|Suspendido)")
         estado_match = estado_pattern.search(content)
-        
-        goles_pattern = re.compile(r"GOLES\n(.*?)\n(AMARILLAS|ROJAS)", re.DOTALL)
-        goles_match = goles_pattern.search(content)
-        
-        goles_local = "No hay"
-        goles_visitante = "No hay"
-        if goles_match:
-            goles_text = goles_match.group(1).strip()
-            goles_local = "Gol Local"  # Placeholder
-            goles_visitante = "Gol Visitante"  # Placeholder
 
         # Cambios usando BeautifulSoup
         cambios_local = "No hubo"
@@ -370,8 +385,6 @@ def parse_match_content(content, soup):
         # Construir resultado
         result = {
             "estado": estado_match.group(0) if estado_match else "En juego",
-            "goles_local": goles_local,
-            "goles_visitante": goles_visitante,
             "cambios_local": cambios_local,
             "cambios_visitante": cambios_visitante,
         }
