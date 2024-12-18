@@ -326,48 +326,45 @@ def extract_usoficha_to_estadisticas(soup):
 
 import re
 
-def parse_match_content(content):
+def parse_match_content(content, soup):
     # Define regex patterns for different sections
     estado_pattern = re.compile(r"(Finalizado|Entretiempo|Inicio: .+|En juego|Suspendido)")
     goles_pattern = re.compile(r"GOLES\n(.*?)\n(AMARILLAS|ROJAS)", re.DOTALL)
     amarillas_pattern = re.compile(r"AMARILLAS\n(.*?)\nCAMBIOS", re.DOTALL)
-    cambios_pattern = re.compile(r"CAMBIOS\n(.*?)\n", re.DOTALL)
     
     # Extract sections using regex
     estado_match = estado_pattern.search(content)
     goles_match = goles_pattern.search(content)
     amarillas_matches = amarillas_pattern.findall(content)
-    cambios_match = cambios_pattern.search(content)
-    
-    # Prepare variables to hold goal information
+
+    # Parse goals
     goles_local = "No hay"
     goles_visitante = "No hay"
     
     if goles_match:
         goles_text = goles_match.group(1).strip()
-
-        # Split the text of the goals into lines
         goles_lines = goles_text.split('\n')
-
-        # Assuming we know the teams are organized in some clear way
-        # For this example, let's assume the content includes team identifiers like "local" or "visitante"
-        local_goals = []
-        visitante_goals = []
-
-        # Loop through each line and decide if it belongs to local or visitante
-        for line in goles_lines:
-            # Check if this line mentions local or visitante
-            if "local" in line.lower():
-                local_goals.append(line.strip())
-            elif "visitante" in line.lower():
-                visitante_goals.append(line.strip())
-            else:
-                # If we don't know, assume it's general (adjust this logic to your real case)
-                local_goals.append(line.strip())
-
-        # Join results back into strings
+        local_goals = [line.strip() for line in goles_lines if "local" in line.lower()]
+        visitante_goals = [line.strip() for line in goles_lines if "visitante" in line.lower()]
         goles_local = "\n".join(local_goals) if local_goals else "No hay"
         goles_visitante = "\n".join(visitante_goals) if visitante_goals else "No hay"
+
+    # Parse cambios using incidencias2
+    cambios_local = "No hubo"
+    cambios_visitante = "No hubo"
+    try:
+        # Find all elements with class "cambios"
+        cambios_elements = soup.find_all(attrs={"class": "cambios"})
+        if cambios_elements and len(cambios_elements) >= 2:
+            # Local team changes are in the first 'incidencias2' under the first 'cambios'
+            cambios_local_element = cambios_elements[0].find_next(attrs={"class": "incidencias2"})
+            cambios_local = cambios_local_element.get_text(separator="\n").strip() if cambios_local_element else "No hubo"
+            
+            # Visitor team changes are in the first 'incidencias2' under the second 'cambios'
+            cambios_visitante_element = cambios_elements[1].find_next(attrs={"class": "incidencias2"})
+            cambios_visitante = cambios_visitante_element.get_text(separator="\n").strip() if cambios_visitante_element else "No hubo"
+    except Exception as e:
+        app.logger.error(f"Error parsing cambios: {e}")
 
     # Prepare result dictionary
     result = {
@@ -376,10 +373,12 @@ def parse_match_content(content):
         "goles_visitante": goles_visitante,
         "amarillas_local": amarillas_matches[0].strip() if len(amarillas_matches) > 0 else "No hay",
         "amarillas_visitante": amarillas_matches[1].strip() if len(amarillas_matches) > 1 else "No hay",
-        "cambios": cambios_match.group(1).strip() if cambios_match else "No hubo",
+        "cambios_local": cambios_local,
+        "cambios_visitante": cambios_visitante,
     }
     
     return result
+
 
 
 
