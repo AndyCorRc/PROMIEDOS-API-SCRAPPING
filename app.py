@@ -71,12 +71,15 @@ def process_match_row(row, league_title, league_logo):
         home_team_section = teams[0] if len(teams) > 0 else None
         away_team_section = teams[1] if len(teams) > 1 else None
 
+        # Home team logo: Check if there are images and select the correct one
         home_team = safe_get_text(home_team_section.find(class_='datoequipo'), 'Unknown') if home_team_section else 'Unknown'
-        home_logo = safe_get_attr(home_team_section.find('img'), 'src') if home_team_section else None
+        home_images = home_team_section.find_all('img') if home_team_section else []
+        home_logo = home_images[1]['src'] if len(home_images) > 1 else home_images[0]['src'] if home_images else None
         home_logo = f"{BASE_URL}{home_logo}" if home_logo else None
 
         away_team = safe_get_text(away_team_section.find(class_='datoequipo'), 'Unknown') if away_team_section else 'Unknown'
-        away_logo = safe_get_attr(away_team_section.find('img'), 'src') if away_team_section else None
+        away_images = away_team_section.find_all('img') if away_team_section else []
+        away_logo = away_images[1]['src'] if len(away_images) > 1 else away_images[0]['src'] if away_images else None
         away_logo = f"{BASE_URL}{away_logo}" if away_logo else None
 
         home_score = safe_get_text(row.find(class_='game-r1').find('span'), '0')
@@ -108,6 +111,7 @@ def process_match_row(row, league_title, league_logo):
     except Exception as e:
         app.logger.error(f"Error processing match row: {e}")
         return None
+
 
 def fetch_match_details(match_id):
     """Fetch match details from the ficha endpoint."""
