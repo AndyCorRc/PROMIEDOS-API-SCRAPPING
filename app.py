@@ -287,22 +287,25 @@ def get_ficha(match_id):
         return jsonify({"error": "No se pudo acceder a la página del partido"}), 500
 
     soup = BeautifulSoup(html_content, 'html.parser')
+    
+    # Imprimir el HTML para depurar
+    app.logger.debug(soup.prettify())
+
     content = extract_usoficha_to_estadisticas(soup)
 
     if content:
-        parsed_data = parse_match_content(content)
-        #parsed_data = content
+        parsed_data = parse_match_content(content, soup)
         return jsonify(parsed_data)
     else:
         return jsonify({"error": "No se encontró el contenido entre 'usoficha' y 'ficha-estadisticas'"}), 404
-    
+
 def extract_usoficha_to_estadisticas(soup):
     """Extract content between 'usoficha' and 'ficha-estadisticas', if both are present."""
     try:
         usoficha_element = soup.find(attrs={'id': 'usoficha'})
         
         if not usoficha_element:
-            app.logger.warning("Element 'usoficha' not found.")
+            app.logger.warning("Elemento 'usoficha' no encontrado.")
             return None
         
         # Use find_all_next to get all elements starting from usoficha
@@ -318,66 +321,57 @@ def extract_usoficha_to_estadisticas(soup):
         return "\n".join(content)
     
     except Exception as e:
-        app.logger.error(f"Error extracting content: {e}")
+        app.logger.error(f"Error extrayendo el contenido: {e}")
         return None
-    
-    
-
-
-import re
 
 def parse_match_content(content, soup):
-    # Define regex patterns for other sections
-    estado_pattern = re.compile(r"(Finalizado|Entretiempo|Inicio: .+|En juego|Suspendido)")
-    goles_pattern = re.compile(r"GOLES\n(.*?)\n(AMARILLAS|ROJAS)", re.DOTALL)
-    amarillas_pattern = re.compile(r"AMARILLAS\n(.*?)\nCAMBIOS", re.DOTALL)
-    
-    # Extract sections using regex
-    estado_match = estado_pattern.search(content)
-    goles_match = goles_pattern.search(content)
-    amarillas_matches = amarillas_pattern.findall(content)
-
-    # Parse goals
-    goles_local = "No hay"
-    goles_visitante = "No hay"
-    
-    if goles_match:
-        goles_text = goles_match.group(1).strip()
-        goles_lines = goles_text.split('\n')
-        local_goals = [line.strip() for line in goles_lines if "local" in line.lower()]
-        visitante_goals = [line.strip() for line in goles_lines if "visitante" in line.lower()]
-        goles_local = "\n".join(local_goals) if local_goals else "No hay"
-        goles_visitante = "\n".join(visitante_goals) if visitante_goals else "No hay"
-
-    # Extract cambios from incidencias2
-    cambios_local = "No hubo"
-    cambios_visitante = "No hubo"
     try:
+        # Estado y goles usando regex
+        estado_pattern = re.compile(r"(Finalizado|Entretiempo|Inicio: .+|En juego|Suspendido)")
+        estado_match = estado_pattern.search(content)
+        
+        goles_pattern = re.compile(r"GOLES\n(.*?)\n(AMARILLAS|ROJAS)", re.DOTALL)
+        goles_match = goles_pattern.search(content)
+        
+        goles_local = "No hay"
+        goles_visitante = "No hay"
+        if goles_match:
+            goles_text = goles_match.group(1).strip()
+            goles_local = "Gol Local"  # Placeholder
+            goles_visitante = "Gol Visitante"  # Placeholder
+
+        # Cambios usando BeautifulSoup
+        cambios_local = "No hubo"
+        cambios_visitante = "No hubo"
+        
         cambios_elements = soup.find_all(attrs={"class": "cambios"})
+        app.logger.debug(f"cambios_elements: {cambios_elements}")
+        
         if cambios_elements:
-            # For the local team, take the first incidencias2 after the first cambios
+            for i, cambio in enumerate(cambios_elements):
+                app.logger.debug(f"Elemento de cambios {i}: {cambio}")
+
             cambios_local_element = cambios_elements[0].find_next(attrs={"class": "incidencias2"})
             cambios_local = cambios_local_element.get_text(separator="\n").strip() if cambios_local_element else "No hubo"
-
-            # For the visiting team, take the first incidencias2 after the second cambios
+            
             if len(cambios_elements) > 1:
                 cambios_visitante_element = cambios_elements[1].find_next(attrs={"class": "incidencias2"})
                 cambios_visitante = cambios_visitante_element.get_text(separator="\n").strip() if cambios_visitante_element else "No hubo"
-    except Exception as e:
-        app.logger.error(f"Error extracting cambios from incidencias2: {e}")
+        
+        # Construir resultado
+        result = {
+            "estado": estado_match.group(0) if estado_match else "En juego",
+            "goles_local": goles_local,
+            "goles_visitante": goles_visitante,
+            "cambios_local": cambios_local,
+            "cambios_visitante": cambios_visitante,
+        }
+        return result
 
-    # Prepare the result dictionary
-    result = {
-        "estado": estado_match.group(0) if estado_match else "En juego",
-        "goles_local": goles_local,
-        "goles_visitante": goles_visitante,
-        "amarillas_local": amarillas_matches[0].strip() if len(amarillas_matches) > 0 else "No hay",
-        "amarillas_visitante": amarillas_matches[1].strip() if len(amarillas_matches) > 1 else "No hay",
-        "cambios_local": cambios_local,
-        "cambios_visitante": cambios_visitante,
-    }
-    
-    return result
+    except Exception as e:
+        app.logger.error(f"Error en parse_match_content: {e}")
+        return {"error": "Error al procesar el contenido"}
+
 
 
 
